@@ -13,6 +13,8 @@ def convert_to_png(infile):
     im_res = Image.new('RGBA', (size, size), (255, 255, 255, 0))
     im_res.paste(im, (int((size-xsize)/2), int((size-ysize)/2) ))
 
+    im_res = im.resize((512, 512))
+
     print('all is cool')
 
     out = io.BytesIO()
