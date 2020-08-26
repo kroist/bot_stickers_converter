@@ -1,4 +1,5 @@
 env/
 src/token.json
+src/__pycache__
 *.png
 *.jpg
