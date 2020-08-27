@@ -13,7 +13,10 @@ def convert_to_png(infile):
     im_res = Image.new('RGBA', (size, size), (255, 255, 255, 0))
     im_res.paste(im, (int((size-xsize)/2), int((size-ysize)/2) ))
 
-    im_res = im.resize((512, 512))
+    if xsize > ysize:
+        im_res = im.resize((512, int(ysize/xsize*512)))
+    else:
+        im_res = im.resize((int(xsize/ysize*512), 512))
 
     print('all is cool')
 
