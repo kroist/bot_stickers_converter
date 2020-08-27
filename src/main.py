@@ -13,8 +13,12 @@ print(config['api']['token'])
 
 bot = telebot.TeleBot(config['api']['token'])
 
-def download_and_send_photo(message, file_path):
+def download_file(file_path):
     req = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(config['api']['token'], file_path))
+    return req;
+
+def download_and_send_photo(message, file_path):
+    req = download_file(file_path)
     if req.status_code == 200:
         try:
             file2 = ToPng.convert_to_png(BytesIO(req.content))
@@ -49,10 +53,17 @@ def handle_photo(message):
 
 @bot.message_handler(content_types=['sticker'])
 def handle_sticker(message):
-    if message.sticker.is_animated:
-        bot.reply_to(message, 'I (currently) don\' support animated stickers 😔')
-        return
     file_info = bot.get_file(message.sticker.file_id)
+    if message.sticker.is_animated:
+        req = download_file(file_info.file_path)
+        if req.status_code == 200:
+            file2 = BytesIO(req.content)
+            file2.name = 'image.tgs'
+            bot.send_document(message.chat.id, file2)
+            bot.reply_to(message, 'just download your animated sticker with right-click. If you are using mobile version of telegram, accept my condolences.' )
+        else:
+            bot.reply_to('something went wrong, please try again')
+        return
     download_and_send_photo(message, file_info.file_path)
 
 bot.polling()
