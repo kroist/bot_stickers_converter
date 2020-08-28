@@ -39,7 +39,7 @@ def get_document(message):
 
 @bot.message_handler(commands=['start', 'help'])
 def handle_help(message):
-    bot.reply_to(message, 'send your image in file format, just like you do in @Stickers')
+    bot.reply_to(message, 'send your image(as photo or document) or sticker to get its raw copy in png')
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
