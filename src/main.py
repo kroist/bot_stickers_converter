@@ -65,5 +65,8 @@ def handle_sticker(message):
             bot.reply_to('something went wrong, please try again')
         return
     download_and_send_photo(message, file_info.file_path)
-
-bot.polling()
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as err:
+        time.sleep(5)
