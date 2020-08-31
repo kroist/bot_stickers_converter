@@ -1,4 +1,4 @@
-import telebot, json, requests
+import telebot, json, requests, time
 import ToPng
 from io import BytesIO
 
@@ -65,6 +65,7 @@ def handle_sticker(message):
             bot.reply_to('something went wrong, please try again')
         return
     download_and_send_photo(message, file_info.file_path)
+
 while True:
     try:
         bot.polling(none_stop=True)
