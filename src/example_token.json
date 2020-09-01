@@ -1,0 +1,9 @@
+{
+    "api": {
+        "token": "BOT_TOKEN"
+    },
+    "webhook": {
+        "host": "IP_OF_YOUR_MACHINE",
+        "port": "443/80/88/8443"
+    }
+}

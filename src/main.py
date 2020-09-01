@@ -1,22 +1,64 @@
-import telebot, json, requests, time
+#To create SSL keys use:
+#
+# openssl genrsa -out webhook_pkey.pem 2048
+# openssl req -new -x509 -days 3650 -key webhook_pkey.pem -out weebhook_cert.pem
+#
+# in "Common Name write the same value as in WEBHOOK_HOST"
+
+
+import telebot, json, requests, time, ssl, logging
 import ToPng
 from io import BytesIO
 
+from aiohttp import web
 
+
+
+#load and set configs
 def load_config():
     with open('token.json') as json_file:
         return json.load(json_file)
 
 config = load_config()
 
-print(config['api']['token'])
+API_TOKEN = config['api']['token']
 
-bot = telebot.TeleBot(config['api']['token'])
+WEBHOOK_HOST = config['webhook']['host']
+WEBHOOK_PORT = int(config['webhook']['port'])
+WEBHOOK_LISTEN = config['webhook']['listen']
 
+WEBHOOK_SSL_CERT = './webhook_cert.pem'
+WEBHOOK_SSL_PRIV = './webhook_pkey.pem'
+
+WEBHOOK_URL_BASE = "https://{}:{}".format(WEBHOOK_HOST, WEBHOOK_PORT)
+WEBHOOK_URL_PATH = "/{}/".format(API_TOKEN)
+
+logger = telebot.logger
+telebot.logger.setLevel(logging.INFO)
+
+bot = telebot.TeleBot(API_TOKEN)
+
+app = web.Application()
+
+# webhook calls
+async def handle(request):
+    if request.match_info.get('token') == bot.token:
+        request_body_dict = await request.json()
+        update = telebot.types.Update.de_json(request_body_dict)
+        bot.process_new_updates([update])
+        return web.Response()
+    else:
+        return web.Response(status=403)
+
+app.router.add_post('/{token}/', handle)
+
+
+#download file from telegram
 def download_file(file_path):
     req = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(config['api']['token'], file_path))
     return req;
 
+#download photo, convert it and send as document
 def download_and_send_photo(message, file_path):
     req = download_file(file_path)
     if req.status_code == 200:
@@ -66,8 +108,22 @@ def handle_sticker(message):
         return
     download_and_send_photo(message, file_info.file_path)
 
-while True:
-    try:
-        bot.polling(none_stop=True)
-    except Exception as err:
-        time.sleep(5)
+#remove webhook cause previous may be set
+bot.remove_webhook()
+
+
+bot.set_webhook(url=WEBHOOK_URL_BASE + WEBHOOK_URL_PATH, certificate=open(WEBHOOK_SSL_CERT, 'r'))
+print('set webhook', WEBHOOK_URL_BASE, WEBHOOK_URL_PATH, sep=' ')
+
+#build ssl context
+context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+context.load_cert_chain(WEBHOOK_SSL_CERT, WEBHOOK_SSL_PRIV)
+
+print('kek ' + str(WEBHOOK_LISTEN) + ' ' + str(WEBHOOK_PORT))
+
+web.run_app(
+        app,
+        host=WEBHOOK_LISTEN,
+        port=WEBHOOK_PORT,
+        ssl_context=context,
+)
