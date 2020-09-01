@@ -33,10 +33,17 @@ WEBHOOK_SSL_PRIV = './webhook_pkey.pem'
 WEBHOOK_URL_BASE = "https://{}:{}".format(WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "/{}/".format(API_TOKEN)
 
+logging.basicConfig(filename='logs.txt', filemode='a', 
+        format='%(asctime)s,%(msecs) %(name)s %(levelname)s %(message)s',
+        datefmt='%H:%M:%S',
+        level=logging.DEBUG)
+
 logger = telebot.logger
 telebot.logger.setLevel(logging.INFO)
 
-bot = telebot.TeleBot(API_TOKEN)
+telebot.apihelper.READ_TIMEOUT = 5
+
+bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
 app = web.Application()
 
@@ -58,6 +65,17 @@ def download_file(file_path):
     req = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(config['api']['token'], file_path))
     return req;
 
+
+#reply to message
+
+def replyto(message, text): 
+    try:
+        bot.reply_to(message, text)
+    except Exception as e:
+        logging.error(e)
+        time.sleep(1)
+        replyto(message, text)
+
 #download photo, convert it and send as document
 def download_and_send_photo(message, file_path):
     req = download_file(file_path)
@@ -69,19 +87,19 @@ def download_and_send_photo(message, file_path):
         except:
             bot.reply_to(message, 'something went wrong, maybe file is not an image')
     else:
-        bot.reply_to(message, 'something went wrong, please try again')
+        replyto(message, 'something went wrong, please try again')
 
 @bot.message_handler(content_types=['document'])
 def get_document(message):
     file_info = bot.get_file(message.document.file_id)
     if message.document.file_size > 2000000:
-        bot.reply_to(message, 'maximum file size is 2MB')
+        replyto(message, 'maximum file size is 2MB')
         return
     download_and_send_photo(message, file_info.file_path)
 
 @bot.message_handler(commands=['start', 'help'])
 def handle_help(message):
-    bot.reply_to(message, 'send your image(as photo or document) or sticker to get its raw copy in png')
+    replyto(message, 'send your image(as photo or document) or sticker to get its raw copy in png')
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
@@ -102,9 +120,9 @@ def handle_sticker(message):
             file2 = BytesIO(req.content)
             file2.name = 'image.tgs'
             bot.send_document(message.chat.id, file2)
-            bot.reply_to(message, 'just download your animated sticker with right-click. If you are using mobile version of telegram, accept my condolences.' )
+            replyto(message, 'just download your animated sticker with right-click. If you are using mobile version of telegram, accept my condolences.' )
         else:
-            bot.reply_to('something went wrong, please try again')
+            replyto('something went wrong, please try again')
         return
     download_and_send_photo(message, file_info.file_path)
 
