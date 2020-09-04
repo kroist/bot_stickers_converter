@@ -71,10 +71,11 @@ def download_file(file_path):
 def replyto(message, text): 
     try:
         bot.reply_to(message, text)
+    except ReadTimeout as e:
+        logging.error(e)
+        replyto(message, text)
     except Exception as e:
         logging.error(e)
-        time.sleep(1)
-        replyto(message, text)
 
 #download photo, convert it and send as document
 def download_and_send_photo(message, file_path):
